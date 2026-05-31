@@ -1,0 +1,58 @@
+model_name: "LogisticBaselineModel"
+experiment_version: "v1"
+dataset_name: "sp500_dataset"
+data_path: "data/sp500"
+models_path: "models/sp500"
+
+pipeline:
+  etl:
+    - class: "code.modules.stages.data.yahoo_finance_etl.YahooFinanceETL"
+      params:
+        ticker: "^GSPC"
+        start_date: "2010-01-01"
+        end_date: "2023-12-31"
+        dataset_name: "sp500_dataset"
+        data_path: "data/sp500/processed"
+
+  dataset_loader:
+    class: "code.modules.stages.transforms.dataset_loader.DatasetLoader"
+    params:
+      data_path: "data/sp500/processed"
+      dataset_name: "sp500_dataset"
+
+  xy_split:
+    class: "code.modules.stages.transforms.time_series_xy_split.TimeSeriesXYSplit"
+    params:
+      target: "binary_direction_1d"
+      sma_window: 20
+
+  validation_split:
+    class: "code.modules.stages.transforms.temporal_validation_split.TemporalValidationSplit"
+    params:
+      val_start_date: "2020-01-01"
+      test_start_date: "2022-01-03"
+
+  dpp:
+    - class: "code.modules.stages.transforms.identity.Identity"
+      params: {}
+
+  model:
+    class: "code.modules.stages.models.logistic_baseline.LogisticBaselineModel"
+    params:
+      C: 1.0
+      max_iter: 1000
+
+  pos:
+    - class: "code.modules.stages.transforms.trading_signal_pos.TradingSignalPOS"
+      params:
+        signal_mode: "classification"
+
+  metrics:
+    class: "code.modules.stages.metrics.metrics_sharpe.MetricsSharpe"
+    params:
+      trading_days_per_year: 252
+
+  model_loader:
+    class: "code.modules.stages.loaders.basic_model_loader.BasicModelLoader"
+    params: {}
+
