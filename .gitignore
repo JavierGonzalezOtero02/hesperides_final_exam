@@ -63,3 +63,17 @@ tests/models/*
 *.pkl
 *.joblib
 
+# --- Final exam deliverables (committed on purpose) ---
+# The fixed OOS test set, the source table and the trained model bundle
+# must be versioned so the Sharpe Ratio is reproducible by the grader.
+!data/sp500/
+!data/sp500/processed/
+!data/sp500/processed/sp500_dataset/
+!data/sp500/processed/sp500_dataset/table/
+!data/sp500/processed/sp500_dataset/table/table.csv
+!data/sp500/processed/sp500_dataset/test/
+!data/sp500/processed/sp500_dataset/test/test.csv
+!models/sp500/
+!models/sp500/**/
+!models/sp500/**/pipeline.pkl
+

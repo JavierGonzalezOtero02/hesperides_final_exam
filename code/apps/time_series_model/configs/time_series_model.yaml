@@ -42,15 +42,12 @@ pipeline:
       C: 1.0
       max_iter: 1000
 
-  pos:
-    - class: "code.modules.stages.transforms.trading_signal_pos.TradingSignalPOS"
-      params:
-        signal_mode: "classification"
 
   metrics:
     class: "code.modules.stages.metrics.metrics_sharpe.MetricsSharpe"
     params:
       trading_days_per_year: 252
+      signal_mode: "classification"
 
   model_loader:
     class: "code.modules.stages.loaders.basic_model_loader.BasicModelLoader"
