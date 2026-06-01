@@ -32,9 +32,6 @@ server = [
     "uvicorn>=0.23.0",
 ]
 
-[project.scripts]
-hesperides-main = "hesperides_final_exam.apps.main.cli:main"
-
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"

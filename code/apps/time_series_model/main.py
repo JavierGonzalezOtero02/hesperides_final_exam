@@ -36,21 +36,28 @@ if __name__ == "__main__":
     main = Main(config)
     main.initialize()
 
-    if len(sys.argv) > 1:
-        mode = sys.argv[1]
-        if mode == "etl":
-            main.etl()
-            print("✓ ETL completed")
-        elif mode == "train":
-            score_df = main.train()
-            print(score_df)
-        elif mode == "predict":
-            result = main.predict()
-            print(result)
-    else:
-        print("=== Smoke test ===")
+    mode = sys.argv[1] if len(sys.argv) > 1 else None
+
+    if mode == "etl":
         main.etl()
+        print("✓ ETL completed")
+    elif mode == "train":
         score_df = main.train()
-        print(f"✓ Smoke test completed")
         print(score_df)
+    elif mode == "predict":
+        score_df = main.predict()
+        print(score_df)
+    elif mode is None:
+        # No argument → full pipeline: etl → train → predict
+        print("=== etl ===")
+        main.etl()
+        print("=== train ===")
+        score_df = main.train()
+        print(score_df)
+        print("=== predict ===")
+        score_df = main.predict()
+        print(score_df)
+    else:
+        print(f"Unknown mode '{mode}'. Use: etl | train | predict")
+        sys.exit(1)
 

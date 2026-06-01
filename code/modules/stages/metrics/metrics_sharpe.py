@@ -69,5 +69,26 @@ class MetricsSharpe:
             "win_rate": round(win_rate, 4),
         }])
 
+        self._print_results(sharpe_ratio, annualized_return, max_drawdown, win_rate, len(sr))
+
         return score_df, metadata
 
+    @staticmethod
+    def _print_results(sharpe, ann_ret, max_dd, win_rate, n_periods) -> None:
+        RESET  = "\033[0m"
+        BOLD   = "\033[1m"
+        DIM    = "\033[2m"
+        CYAN   = "\033[1;96m"
+
+        width = 52
+        bar   = "═" * width
+
+        print(f"\n{CYAN}╔{bar}╗{RESET}")
+        print(f"{CYAN}║{'BACKTEST RESULTS — OOS TEST SET':^{width}}║{RESET}")
+        print(f"{CYAN}╠{bar}╣{RESET}")
+        print(f"{CYAN}║{RESET}  {'Sharpe Ratio (ann.)':<28}{BOLD}{sharpe:>+10.4f}{'':>12}{CYAN}║{RESET}")
+        print(f"{CYAN}║{RESET}  {'Annualised Return':<28}{ann_ret:>+10.2%}{'':>12}{CYAN}║{RESET}")
+        print(f"{CYAN}║{RESET}  {'Max Drawdown':<28}{max_dd:>+10.2%}{'':>12}{CYAN}║{RESET}")
+        print(f"{CYAN}║{RESET}  {'Win Rate':<28}{win_rate:>10.2%}{'':>12}{CYAN}║{RESET}")
+        print(f"{CYAN}║{RESET}  {DIM}{'Periods evaluated':<28}{n_periods:>10d}{'':>12}{RESET}{CYAN}║{RESET}")
+        print(f"{CYAN}╚{bar}╝{RESET}\n")
