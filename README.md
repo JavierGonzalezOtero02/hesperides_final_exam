@@ -32,19 +32,50 @@ La evaluación es **automática y objetiva**: se ejecuta `predict` sobre el test
 
 ## 2. Instalación y ejecución
 
+### ¿Qué es `uv`?
+
+[`uv`](https://docs.astral.sh/uv/) es una herramienta moderna de gestión de entornos y dependencias para Python. Puedes pensar en ella como un reemplazo rápido y más cómodo de la combinación clásica `pip` + `venv`: en lugar de crear el entorno virtual manualmente, instalar dependencias una a una y activar el entorno, `uv` hace todo eso con un único comando.
+
+Ventajas clave para este proyecto:
+- **Un solo comando** (`uv sync`) instala todas las dependencias exactas del proyecto.
+- **Sin conflictos**: crea un entorno aislado específico para este repositorio, sin afectar al resto de tu sistema.
+- **Reproducibilidad**: el archivo `uv.lock` fija las versiones exactas de cada paquete, garantizando que el entorno es idéntico en cualquier máquina.
+
 ### Requisitos
 
-- Python ≥ 3.11
-- [uv](https://docs.astral.sh/uv/getting-started/installation/) instalado
+- Python ≥ 3.11 (puedes comprobarlo con `python --version` o `python3 --version` en tu terminal)
+- `uv` instalado (ver instrucciones a continuación)
 
-### Instalación
+### Instalar `uv`
+
+Ejecuta **uno** de los siguientes comandos según tu sistema operativo:
+
+**macOS / Linux:**
+```bash
+curl -LsSf https://astral.sh/uv/install.sh | sh
+```
+
+**Windows (PowerShell):**
+```powershell
+powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
+```
+
+Una vez instalado, cierra y vuelve a abrir la terminal para que el comando `uv` quede disponible. Puedes verificarlo con:
+
+```bash
+uv --version
+```
+
+> Si ya tienes `pip` instalado, también puedes instalar `uv` con `pip install uv`, aunque el método anterior es el recomendado.
+
+### Instalación del proyecto
 
 ```bash
 cd hesperides_final_exam
 uv sync
 ```
 
-`uv sync` resuelve dependencias, crea el entorno virtual y deja el proyecto listo. No se necesita ningún paso adicional.
+`uv sync` lee el archivo `uv.lock`, crea automáticamente un entorno virtual en la carpeta `.venv/` del proyecto e instala todas las dependencias en sus versiones exactas. No se necesita ningún paso adicional ni activar el entorno manualmente: los comandos `uv run ...` lo hacen de forma transparente.
 
 ### Comandos
 
