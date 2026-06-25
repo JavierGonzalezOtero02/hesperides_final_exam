@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(uv --version)",
+      "Bash(uv sync *)",
+      "Bash(uv run *)",
+      "Bash(cp data/sp500/processed/sp500_dataset/table/table.csv /tmp/claude-1000/-mnt-c-Users-jgojg-Desktop-master-Machine-Learning-Fundamentals-hesperides-final-exam/1b4bbf3f-a9fc-4773-b16a-2c08dc0b789e/scratchpad/table_committed.csv)",
+      "Bash(cp data/sp500/processed/sp500_dataset/test/test.csv /tmp/claude-1000/-mnt-c-Users-jgojg-Desktop-master-Machine-Learning-Fundamentals-hesperides-final-exam/1b4bbf3f-a9fc-4773-b16a-2c08dc0b789e/scratchpad/test_committed.csv)",
+      "Bash(git check-ignore *)",
+      "Bash(ls -1 models/sp500/)",
+      "Bash(git diff *)"
+    ]
+  }
+}

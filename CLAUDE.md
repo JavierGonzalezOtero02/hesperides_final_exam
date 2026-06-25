@@ -6,7 +6,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 A take-home final exam: build an ML model that forecasts the **weekly direction of the S&P 500** and aims to maximize the **Sharpe Ratio** of the resulting long/short trading strategy over a fixed, out-of-sample test set (2022–2023). The README (in Spanish) is the authoritative spec.
 
-**How it's graded:** the grade is NOT the Sharpe Ratio itself, though it is correlated with it. What matters most is a clear **explanation and justification of every decision taken** — model choice, features, preprocessing, hyperparameters. A low Sharpe with a correct justification of *why* (e.g. why the signal is weak on this regime, why a given model was chosen) earns a good grade. Prioritize sound, well-argued reasoning over chasing the metric.
+**How it's graded (the real criteria).** The practical part is judged by correct execution and the value of the evaluation metric. There are **3 strict pass/fail criteria** — all three must hold:
+
+1. **Runs first-try from the provided `main.py`.** The code must perform inference on the test set and report the target metrics on the *first* attempt, inside the environment installed from `pyproject.toml`. No manual fix-ups, no missing deps.
+2. **Beats the baseline metric.** The result must be **strictly superior to the provided baseline** (baseline Sharpe ≈ **0.1469**). Beating it is **required**, not optional — a low Sharpe is *not* rescued by a good explanation.
+3. **No data leakage involving the test set.** This is **critical**. Any leakage of test information into training fails the submission.
+
+Beyond pass/fail: submissions are **semi-randomly audited**, with deliberate focus on **extraordinarily high or negative** results, to trace the root cause of any problem and to rule out irresponsible/uncritical use of AI. So an extreme Sharpe (suspiciously high *or* very negative) will be scrutinized — you must be able to **justify how it arose** and demonstrate it is not an artifact of leakage or a bug. Sound, well-argued reasoning still matters, but it sits *on top of* meeting the three hard criteria, not in place of them.
 
 ## Commands
 

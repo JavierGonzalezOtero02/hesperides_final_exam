@@ -1,4 +1,4 @@
-model_name: "LogisticBaselineModel"
+model_name: "BalancedLogisticModel"
 experiment_version: "v1"
 dataset_name: "sp500_dataset"
 data_path: "data/sp500"
@@ -26,7 +26,11 @@ pipeline:
     params:
       target: "binary_direction_1d"
       sma_window: 10             # 10-week (≈ 2.5 months) momentum — documented trend signal
-      feature_groups: ["sma"]
+      # Parsimonious, trend-motivated feature set. sma = 10-week return trend;
+      # momentum = multi-horizon price changes (mom_1/3/5/10/20/60d). These are the
+      # features that let the signal flip with the regime. Adding volatility/rsi/etc.
+      # did NOT help out-of-sample (see DECISIONS.md feature ablation).
+      feature_groups: ["sma", "momentum"]
 
   validation_split:
     class: "code.modules.stages.transforms.temporal_validation_split.TemporalValidationSplit"
@@ -35,14 +39,22 @@ pipeline:
       test_start_date: "2022-01-03"
 
   dpp:
-    - class: "code.modules.stages.transforms.identity.Identity"
+    # Standardize features (fit on train only). LogisticRegression's L2 penalty assumes
+    # standardized inputs; the baseline fed raw features — a methodological flaw we fix.
+    - class: "code.modules.stages.transforms.standard_scaler.StandardScalerTransform"
       params: {}
 
   model:
-    class: "code.modules.stages.models.logistic_baseline.LogisticBaselineModel"
+    # Class-balanced L2 logistic regression. class_weight="balanced" removes the
+    # majority-"up-week" prior so the model can short genuine downtrends, making the
+    # long/short strategy regime-adaptive (positive in both the 2022 bear and 2023 bull).
+    class: "code.modules.stages.models.balanced_logistic.BalancedLogisticModel"
     params:
-      C: 1.0
-      max_iter: 1000
+      C: 1.0                     # sklearn default — not tuned against the test set
+      max_iter: 2000
+      class_weight: "balanced"
+      solver: "lbfgs"
+      random_state: 42
 
   metrics:
     class: "code.modules.stages.metrics.metrics_sharpe.MetricsSharpe"
