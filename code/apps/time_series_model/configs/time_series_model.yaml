@@ -26,7 +26,7 @@ pipeline:
     params:
       target: "binary_direction_1d"
       sma_window: 10             # 10-week (≈ 2.5 months) momentum — documented trend signal
-      feature_groups: ["sma"]
+      feature_groups: ["sma", "momentum", "rsi"]
 
   validation_split:
     class: "code.modules.stages.transforms.temporal_validation_split.TemporalValidationSplit"
@@ -35,7 +35,7 @@ pipeline:
       test_start_date: "2022-01-03"
 
   dpp:
-    - class: "code.modules.stages.transforms.identity.Identity"
+    - class: "code.modules.stages.transforms.robust_scaler.RobustScalerTransform"
       params: {}
 
   model:
