@@ -1,0 +1,938 @@
+%% Thanks to Bennet Goeckner for giving me his TeX template, which this is based on.
+\documentclass[12pt]{article}
+
+\usepackage{amsmath}
+\usepackage{amsthm}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage{enumerate}
+\usepackage{graphicx}
+\usepackage{bbm}
+\usepackage{mdframed}
+\usepackage{multicol}
+\usepackage{verbatim}
+\usepackage{tikz}
+\usepackage{eurosym}
+\usepackage{comment}
+\usepackage{url}
+\usepackage[margin = .8in]{geometry}
+\usepackage[spanish, es-tabla]{babel}
+\geometry{letterpaper}
+\linespread{1.2}
+
+\newcommand{\RR}{\mathbb{R}}
+\newcommand{\NN}{\mathbb{N}}
+\newcommand{\ZZ}{\mathbb{Z}}
+\newcommand{\QQ}{\mathbb{Q}}
+
+\newcommand\set[1]{\left\lbrace #1 \right\rbrace}
+\newcommand\abs[1]{\left| #1 \right|}
+\newcommand\parens[1]{\left( #1 \right)}
+\newcommand\brac[1]{\left[ #1 \right]}
+\newcommand\sol[1]{\begin{mdframed}
+\emph{Solución.} #1
+\end{mdframed}}
+\newcommand\solproof[1]{\begin{mdframed}
+\begin{proof} #1
+\end{proof}
+\end{mdframed}}
+
+\begin{document}
+\noindent Javier González Otero \hfill 01/06/2026
+
+\begin{center}
+    \vspace{1em}
+    {\large \textbf{Examen Teórico}} \\
+    {Fundamentos de Machine Learning}
+    \vspace{1em}
+\end{center}
+
+\begin{enumerate}
+
+\item \textbf{Interpretabilidad frente a capacidad predictiva.}
+
+Un gestor de cartera afirma que no utilizará ningún modelo que no pueda explicar a sus clientes
+institucionales. Sin embargo, el equipo de ciencia de datos sostiene que los modelos más complejos
+ofrecen un rendimiento predictivo superior. Discute el compromiso existente entre interpretabilidad
+y capacidad predictiva. Compara, desde esta perspectiva, modelos como Random Forest, GBM y
+XGBoost. Explica, además, cómo las herramientas de interpretabilidad y las técnicas de selección de
+variables pueden ayudar a comprender las decisiones de modelos complejos y facilitar su utilización
+en entornos financieros.
+
+\sol{
+
+El compromiso entre interpretabilidad y capacidad predictiva surge de que los modelos con mayor
+flexibilidad para capturar relaciones no lineales y de alta dimensión tienden a ser más difíciles de
+explicar. Conviene matizar, no obstante, que este compromiso no es estrictamente binario: existen
+técnicas que permiten acercarse a ambos objetivos de forma simultánea, de modo que la disyuntiva
+entre la postura del gestor y la del equipo de ciencia de datos es menos tajante de lo que parece.
+
+En cuanto a los modelos citados, el Random Forest es un ensamblaje de árboles entrenados mediante
+bagging y selección aleatoria de variables; ofrece buena capacidad predictiva y cierta resistencia
+al sobreajuste, es robusto frente a la elección de hiperparámetros y resulta fácil de paralelizar.
+Su interpretabilidad nativa es limitada, pues no existe un único árbol que pueda examinarse, aunque
+proporciona importancias de variables por reducción de impureza. El GBM (Gradient Boosting Machine),
+por su parte, construye los árboles de forma secuencial, corrigiendo cada uno el error residual del
+anterior; suele superar al Random Forest en datos tabulares estructurados, pero exige una afinación
+más cuidadosa de los hiperparámetros (tasa de aprendizaje, profundidad, submuestreo) y es más
+susceptible al sobreajuste si no se regula adecuadamente. XGBoost es una implementación optimizada
+de gradient boosting que incorpora regularización $L_1$ y $L_2$, manejo nativo de valores faltantes
+y una notable eficiencia computacional; se ha convertido en una de las opciones de referencia para
+datos tabulares, y aunque su interpretabilidad nativa es comparable a la de GBM, se beneficia
+especialmente de las herramientas externas de explicabilidad.
+
+Son precisamente esas herramientas de interpretabilidad las que permiten reconciliar ambos extremos.
+La importancia de variables por reducción de impureza, nativa de los árboles, da una primera lectura
+global de qué variables pesan más, aunque puede sesgarse hacia las de alta cardinalidad. SHAP
+(SHapley Additive exPlanations) afina esa lectura: descompone la predicción de cada observación en
+contribuciones aditivas de las variables, y proporciona tanto explicaciones globales (importancia
+media) como locales (un caso concreto), lo que resulta valioso para justificar decisiones
+individuales ante clientes institucionales. LIME aproxima el comportamiento del modelo en el entorno
+de una observación mediante un modelo lineal sencillo; es útil para comunicar decisiones puntuales,
+si bien sus explicaciones pueden ser inestables. A todo ello se suma la selección de variables, que
+al descartar las irrelevantes reduce la superficie que el analista debe explicar y hace más
+transparente el modelo resultante.
+
+En un entorno financiero, la combinación de XGBoost o GBM con SHAP permite atender la exigencia de
+explicabilidad sin renunciar al rendimiento: el gestor puede mostrar, para cada señal de inversión,
+qué variables la impulsan y en qué magnitud, y trasladar esa explicación al lenguaje del negocio (por
+ejemplo, que el modelo sobrepondera una acción por la mejora de márgenes y la baja deuda neta).
+}
+
+%% ─────────────────────────────────────────────
+\item \textbf{Diagnóstico y tratamiento del sobreajuste.}
+
+Describe las señales prácticas que indican sobreajuste durante el desarrollo de un modelo y las
+acciones correctivas que aplicaría, en orden de prioridad.
+
+\sol{
+
+Existen varias señales prácticas que delatan el sobreajuste durante el desarrollo. La más
+característica es una brecha amplia entre la métrica de entrenamiento y la de validación o test
+(por ejemplo, un AUC de 0{,}97 en entrenamiento frente a 0{,}72 en test); esa brecha se hace más
+evidente cuando el error de entrenamiento sigue disminuyendo mientras el de validación se estanca o
+empeora. También resulta sospechoso que el modelo se comporte de forma errática ante pequeñas
+perturbaciones de los datos de entrada, que las importancias de variables revelen un peso exagerado
+de variables ruidosas o de alta cardinalidad, o que la calibración sea deficiente, es decir, que las
+probabilidades predichas no se correspondan con las frecuencias observadas en datos nuevos.
+
+\medskip
+En cuanto a las acciones correctivas, conviene aplicarlas en un orden que priorice las más robustas:
+
+\begin{enumerate}[1.]
+  \item Obtener más datos es una de las soluciones más robustas y preferibles cuando es viable, pues el
+  sobreajuste es esencialmente un problema de muestra insuficiente en relación con la complejidad del
+  modelo.
+  \item Reducir la complejidad del modelo (menor profundidad de los árboles, menos estimadores o
+  menos capas y neuronas) es la medida más directa cuando no se dispone de más datos.
+  \item Aplicar regularización: penalizaciones $L_1$ o $L_2$ en modelos lineales y en XGBoost,
+  dropout en redes neuronales, o restringir el tamaño de las hojas y las variables candidatas en los
+  árboles.
+  \item Recurrir a early stopping, monitorizando la métrica de validación durante el entrenamiento y
+  deteniéndolo cuando deja de mejorar, algo especialmente útil en GBM y en redes neuronales.
+  \item Seleccionar variables, ya que eliminar las irrelevantes o ruidosas reduce la superficie de
+  memorización del modelo.
+  \item Emplear validación cruzada estratificada, que proporciona una estimación más fiable del
+  rendimiento real y permite distinguir si el sobreajuste es consistente o puntual.
+  \item Como último recurso, generar datos adicionales o inyectar ruido controlado, que puede actuar
+  como regularizador implícito.
+\end{enumerate}
+}
+
+%% ─────────────────────────────────────────────
+\item \textbf{Factores no técnicos que determinan el impacto de un modelo.}
+
+Un modelo con métricas superiores a todo lo existente en una organización lleva seis meses sin ser
+adoptado en la toma de decisiones. Analice las razones por las que esto ocurre con frecuencia y qué
+factores, más allá de la calidad técnica, determinan que un modelo tenga un impacto real.
+
+\sol{
+
+Un modelo técnicamente excelente puede resultar irrelevante si no se integra en el flujo operativo
+de quienes deben utilizarlo, y esto ocurre por varias razones.
+
+La primera es la falta de confianza: los usuarios finales no comprenden cómo funciona el modelo y se
+muestran reacios a decidir sobre la base de un sistema opaco. Generar esa confianza exige
+explicabilidad, un historial observado de aciertos y, en muchas organizaciones, el respaldo de una
+figura de autoridad interna. A ello se une la desalineación con el proceso de negocio: el modelo
+puede producir predicciones en un formato, un momento o una granularidad que no encajan con la
+decisión real, de modo que si el gestor decide cada semana y el modelo emite señales diarias sin
+integrarse en su herramienta habitual, el coste de adopción supera al beneficio percibido.
+
+Influye también la ausencia de un responsable interno con poder de decisión que respalde activamente
+el modelo, sin el cual los incentivos para cambiar el statu quo resultan insuficientes. A esto se
+añade la inercia organizativa y política, pues los modelos amenazan procesos establecidos o el
+estatus de equipos que antes decidían de forma manual, de manera que la resistencia no es técnica
+sino de poder. Otro factor recurrente es la falta de validación operativa: cuando las métricas de
+desarrollo (AUC, F1) no se traducen a unidades de negocio comprensibles (rentabilidad incremental,
+ahorro de costes, reducción de errores), la dirección carece de argumentos para justificar el
+cambio. Finalmente, pesan la fiabilidad y la infraestructura, ya que un modelo que falla a menudo,
+produce predicciones tardías o requiere intervención manual se abandona con rapidez, así como los
+factores regulatorios y de gobernanza, que en entornos financieros pueden bloquear la adopción por
+falta de documentación de auditoría, de validación por el equipo de riesgos o de aprobación del
+comité de modelos.
+}
+
+%% ─────────────────────────────────────────────
+\item \textbf{Construcción de un pipeline cuantitativo completo.}
+
+Imagina que debes desarrollar un sistema para seleccionar acciones que formará parte del proceso de
+inversión de un Hedge Fund. Dispones de cientos de variables financieras y de mercado, pero el tiempo
+de cálculo y la interpretabilidad son factores importantes. Describe un pipeline completo que combine
+reducción dimensional, selección de variables y modelos de ensamblaje. Justifica el orden de las
+etapas, las técnicas que utilizarías en cada una de ellas y cómo controlarías el riesgo de
+sobreajuste. Finalmente, explica qué métricas utilizarías para evaluar tanto la calidad estadística
+del modelo como su utilidad económica en una estrategia de inversión real.
+
+\sol{
+
+Antes de cualquier modelado conviene fijar el diseño del problema y prevenir el data leakage: definir
+el objetivo (por ejemplo, el retorno ajustado al riesgo a un horizonte de 21 días), establecer las
+ventanas de entrenamiento y de validación walk-forward, y asegurarse de que ninguna variable
+incorpora información posterior a la fecha de predicción. Esta etapa precede a todas las demás porque
+un error en la definición del objetivo o una fuga de información invalidan el resto del pipeline por
+bueno que sea.
+
+A continuación se realiza el preprocesamiento y la limpieza: tratamiento de valores faltantes
+mediante imputación por la mediana, robusta frente a outliers, o por media móvil en series
+temporales; detección y tratamiento de valores atípicos; y estandarización cross-sectional (por
+fecha) para neutralizar los efectos de escala y de mercado.
+
+La reducción dimensional va antes que la selección de variables porque, con cientos de
+variables, muchas estarán correlacionadas y conviene depurar primero esa redundancia.
+Se eliminan las variables de baja varianza o muy correlacionadas ($|\rho| > 0{,}95$) y, a
+continuación, se aplica PCA para resumir la redundancia restante, reteniendo las componentes que
+expliquen entre el 80 y el 90\,\% de la varianza. Como filtro previo, conviene además conservar las
+variables originales que tienen un peso apreciable en esas componentes y descartar las que no
+contribuyen a ninguna, de modo que la reducción no solo comprima la información sino que también
+ayude a depurar el conjunto de variables.
+
+La selección de variables se aplica luego sobre las variables originales que han superado ese filtro,
+en dos pasos. Primero un filtrado univariante mediante la correlación de Spearman con el objetivo o
+la información mutua, que descarta las variables sin señal. Después una selección por importancia de
+modelo, empleando un XGBoost o Random Forest ligero y regularizado del que se lee la importancia de
+cada variable (por reducción de impureza o con SHAP), reteniendo las variables con mayor
+contribución estable a lo largo del tiempo.
+
+Sobre ese conjunto se entrenan los modelos base del ensamblaje, buscando que sean complementarios:
+modelos lineales Ridge o Lasso como referencia de baja varianza, XGBoost para capturar no
+linealidades e interacciones, LightGBM por su eficiencia de cálculo cuando hay que reentrenar con
+frecuencia, y un modelo de factores lineales interpretable y alineado con la lógica financiera. Sus
+predicciones se combinan mediante un promedio ponderado, asignando más peso a los modelos con mejor
+rendimiento reciente para adaptarse a los cambios de régimen.
+
+El control del sobreajuste descansa en tres pilares: una validación walk-forward, dejando una
+separación temporal entre el entrenamiento y la validación para evitar que se solapen observaciones;
+la regularización en todos los modelos base; y la monitorización fuera de muestra de la capacidad
+predictiva a lo largo del tiempo, reiniciando el pipeline si decae.
+
+Para la evaluación conviene combinar métricas estadísticas y económicas. Entre las primeras, la
+correlación de Spearman entre la señal y el retorno realizado y la calidad de la calibración de las
+probabilidades. Entre las económicas, el Sharpe ratio de la estrategia long/short, el máximo
+drawdown y el turnover con su coste de transacción estimado, que indican si el acierto estadístico
+llega a traducirse en valor para la estrategia.
+}
+
+%% ─────────────────────────────────────────────
+\item \textbf{Generalización frente a memorización: una explicación rigurosa y accesible.}
+
+Un interlocutor no especialista le pregunta: ``¿El modelo realmente aprende o simplemente
+memoriza?'' Construya una respuesta que sea simultáneamente precisa y accesible para un profesional
+inteligente sin formación técnica en ML.
+
+\sol{
+
+Ambas cosas pueden ocurrir, y saber diferenciarlas es lo más importante al crear estos sistemas.
+
+\medskip
+Un sistema memoriza cuando da respuestas perfectas para la información exacta que se usó para crearlo,
+pero se equivoca en cuanto se le presenta información nueva. Esto ocurre porque el sistema se ha fijado
+en detalles irrelevantes o casuales de esos datos iniciales, es decir, no es capaz de abstraer sus respuestas a un modelo general que cubra todos los casos posibles.
+
+\medskip
+En contraparte, podemos considerar que el sistema ''aprende'' cuando logra extraer e identificar las reglas o
+características comunes que siempre se cumplen, es decir, logra abstraer.
+
+\medskip
+La forma de comprobar qué está haciendo el sistema es muy directa. Primero, el sistema se prepara con cierta información relevante al problema. Posteriormente, se le dan datos completamente nuevos que aporten información adicional, eventos no directamente imputables desde los datos iniciales... .
+Si funciona bien tanto con los datos iniciales como con los nuevos, está abstrayendo y por ende podemos considerar que está aprendiendo; si solo
+funciona bien con los datos iniciales y falla en los nuevos, simplemente ha memorizado.
+
+\medskip
+El objetivo de la persona que diseña el sistema es ajustarlo para encontrar un punto medio estricto: el
+programa no debe ser tan básico que pase por alto las reglas importantes, ni tan rebuscado que acabe memorizando
+detalles que no importan.
+
+\medskip
+Para asegurar que estamos ante un aprendizaje real y no ante pura memorización, el método principal consiste en
+ocultar una parte de la información disponible desde el principio. Una parte de los datos se usa para construir
+el sistema, y la parte que se mantuvo oculta se guarda exclusivamente para examinarlo al final y verificar que sus
+respuestas siguen siendo correctas en un escenario nuevo.
+}
+
+%% ─────────────────────────────────────────────
+\item \textbf{La definición del target como decisión de diseño.}
+
+Dos equipos modelan el mismo fenómeno de abandono de clientes con definiciones diferentes: el equipo~A
+define el abandono como ``ausencia de actividad en 90 días'', mientras que el equipo~B lo define como
+``cancelación explícita de la suscripción''. Ambos obtienen métricas excelentes. Explique por qué uno
+de estos modelos podría ser inútil, a pesar de su buen rendimiento técnico.
+
+\sol{
+
+La definición del objetivo no es un detalle técnico, sino la hipótesis de negocio que el modelo
+valida. Si esa hipótesis no se alinea con la acción que la organización puede ejecutar, un modelo
+perfectamente calibrado resulta inútil.
+
+\medskip
+El modelo del equipo~A, basado en la inactividad durante 90 días, probablemente predice con
+precisión a clientes que ya están inactivos o en proceso de abandono silencioso. El problema es doble.
+Por un lado, la inactividad puede ser temporal, estacional o irrelevante para el negocio, como en un
+cliente que no actúa pero sigue pagando. Por otro, y más importante, si el modelo etiqueta a alguien
+como abandono solo cuando ya lleva semanas sin actividad, la intervención comercial llega demasiado
+tarde: el modelo describe el pasado en lugar de anticipar un futuro sobre el que aún se pueda actuar.
+
+\medskip
+El modelo del equipo~B, basado en la cancelación explícita, se ajusta en cambio al evento de negocio
+que se quiere evitar. Es un evento claro, verificable y accionable: cuando el modelo predice que un
+cliente va a cancelar, existe una ventana temporal para intervenir con una oferta de retención.
+
+\medskip
+El riesgo específico del equipo~A es que, aun con métricas excelentes, podría estar aprendiendo a
+identificar patrones posteriores al hecho (clientes que ya abandonaron) en lugar de señales
+predictivas tempranas; la variable ``días sin actividad'' puede actuar como un sustituto del propio
+objetivo, lo que inflaría artificialmente el rendimiento sin aportar valor predictivo real.
+}
+
+%% ─────────────────────────────────────────────
+\item \textbf{Segmentación de activos financieros y construcción de factores.}
+
+Dispones de una base de datos con 2.000 acciones globales y más de 100 variables financieras,
+fundamentales y de mercado para cada una de ellas. El objetivo es identificar grupos homogéneos de
+compañías para construir estrategias de inversión diferenciadas. Explica cómo abordarías este
+problema utilizando técnicas de reducción dimensional y clustering. Compara las ventajas e
+inconvenientes de utilizar K-Means, DBSCAN y Clustering Jerárquico en este contexto. Discute,
+además, qué métricas emplearías para evaluar la calidad de los clústeres obtenidos y cómo
+interpretarías financieramente los resultados.
+
+\sol{
+
+Con más de cien variables, tenemos un espacio de alta dimensión, por lo que podemos tener curse of dimensionality:
+las distancias euclídeas pierden significado y la mayoría de los algoritmos de clustering degradan su
+rendimiento. Por ello es obligatorio normalizar las variables (estandarización cross-sectional) y
+reducir la dimensionalidad antes de agrupar.
+
+\medskip
+Para la reducción dimensional, el PCA es rápido y reproducible y permite retener las componentes que
+expliquen entre el 80 y el 85\,\% de la varianza, con el inconveniente de que esas componentes no son
+directamente interpretables. Como alternativas no lineales, t-SNE y UMAP preservan mejor la
+estructura local y resultan útiles para visualizar en dos dimensiones y detectar agrupaciones de
+forma irregular, aunque son menos reproducibles y más difíciles de interpretar.
+
+\medskip
+En cuanto a los algoritmos de clustering:
+
+\begin{itemize}
+  \item K-Means es rápido, escala sin problema a 2.000 acciones y resulta fácil de interpretar, pues
+  los centroides representan el perfil medio de cada grupo y el número de clústeres $k$ es un parámetro
+  de diseño alineado con la granularidad deseada de la estrategia. En contra, asume clústeres
+  esféricos y de tamaño similar, es sensible a los outliers y obliga a fijar $k$ de antemano, de modo
+  que con distribuciones financieras asimétricas puede producir grupos heterogéneos.
+
+  \item DBSCAN no exige fijar el número de clústeres, detecta formas arbitrarias e identifica
+  automáticamente outliers, lo que puede ser
+  valioso para la gestión de riesgos. Sus inconvenientes son la sensibilidad a los parámetros
+  $\varepsilon$ y \textit{minPts}, su mal comportamiento cuando las densidades de los grupos difieren
+  mucho y la degradación de la noción de densidad local en alta dimensión, incluso tras aplicar PCA.
+
+  \item El clustering jerárquico tampoco requiere fijar $k$ y, mediante el dendrograma, permite
+  explorar la jerarquía de fusiones, lo que es especialmente útil para construir estrategias a
+  distintos niveles de granularidad (sectores frente a subsectores); el método de Ward es robusto y
+  minimiza la varianza intragrupo. Su principal limitación es la complejidad computacional, de orden
+  $O(n^2)$ a $O(n^3)$, que puede resultar prohibitiva para $n > 2.000$ salvo que se use una versión
+  aproximada, y el hecho de que, una vez unidas dos observaciones, la decisión es irreversible.
+\end{itemize}
+
+\medskip
+La calidad de los clústeres se evalúa con varias métricas complementarias: el Silhouette Score, que
+mide la cohesión interna y la separación entre grupos (valores próximos a 1 indican clústeres bien
+definidos); el índice de Davies-Bouldin, razón entre la dispersión intragrupo y la distancia entre
+centroides, preferible cuanto menor sea; y, sobre todo, la estabilidad, que se comprueba repitiendo
+el clustering sobre submuestras o con ruido y midiendo la consistencia de las asignaciones, pues un
+agrupamiento útil debe ser estable.
+
+\medskip
+Finalmente, la interpretación financiera exige validar los clústeres con lógica de dominio:
+conviene comprobar si los grupos se ordenan de forma natural por sector, capitalización, región o
+perfil de crecimiento frente a valor. Si un clúster reúne tecnológicas de alto crecimiento y baja
+rentabilidad y otro agrupa utilities de alta rentabilidad por dividendo, el agrupamiento tiene
+sentido económico accionable. La validación más rigurosa consiste en comprobar si la rentabilidad
+futura promedio difiere de forma apreciable entre clústeres, o si las estrategias long/short basadas
+en ellos obtienen una rentabilidad superior ajustada al riesgo.
+}
+
+%% ─────────────────────────────────────────────
+\item \textbf{Estrategia de modelado bajo restricción temporal.}
+
+Dispone de un dataset tabular de tamaño moderado (50.000 observaciones, 30 variables), un problema
+de clasificación binaria y un plazo de 24 horas. Describe su estrategia completa, justificando cada
+decisión.
+
+\sol{
+
+Con un plazo de 24 horas y un dataset de tamaño moderado, la prioridad es maximizar el valor esperado
+del resultado gestionando de forma realista el esfuerzo humano y computacional. La estrategia se organiza
+en bloques lógicos, alternando trabajo activo y tiempo de cómputo desatendido.
+
+\medskip
+Las dos primeras horas se dedican al análisis exploratorio y a una limpieza rápida: revisar
+distribuciones, valores faltantes, cardinalidad de las variables categóricas y balance de clases;
+identificar posibles fugas de información (variables con una correlación sospechosamente alta con el
+objetivo); y decidir si el desbalance requiere tratamiento, planificándolo si la clase positiva
+representa menos del 5\,\%.
+
+\medskip
+Entre las horas dos y cuatro conviene construir un modelo de referencia sencillo (una regresión
+logística o un LightGBM con parámetros por defecto y validación estratificada en 5 particiones).
+Su rendimiento fija el umbral mínimo y permite extraer las primeras métricas de importancia para
+guiar los siguientes pasos.
+
+\medskip
+Las horas cuatro a ocho se destinan a un \textit{feature engineering} selectivo basado en las
+importancias (SHAP) del modelo de referencia: crear interacciones entre las tres a cinco variables
+más relevantes con lógica de dominio, transformar variables asimétricas y eliminar las de importancia
+nula. Realizar esto antes de la optimización garantiza que los hiperparámetros finales se ajusten
+al conjunto de datos definitivo.
+
+\medskip
+Entre las horas ocho y dieciséis se configura y ejecuta el modelado principal. LightGBM o XGBoost
+son la elección natural por su rendimiento en datos tabulares. Dado que 50.000 observaciones entrenan
+muy rápido, se programa una búsqueda bayesiana de hiperparámetros para que corra de forma desatendida
+(de tal manera que pueda uno descansar). Para evitar el sobreajuste, se restringe el espacio de búsqueda
+a los parámetros críticos (regularización, submuestreo, profundidad) y se emplea \textit{early stopping}.
+
+\medskip
+Entre las horas dieciséis y dieciocho se construye un ensamblaje ligero, combinando las predicciones
+del modelo de \textit{boosting} con las del modelo lineal de referencia mediante un promedio ponderado.
+En datasets de tamaño moderado, combinar modelos complementarios suele aportar entre 0{,}5 y 2 puntos
+de AUC sin un coste excesivo.
+
+\medskip
+Las horas dieciocho a veintidós se reservan para la calibración y la evaluación final: calibrar las
+probabilidades si se requiere precisión probabilística; evaluar en el conjunto de test con métricas
+alineadas al problema (AUC-ROC, AUC-PR, F1 en el umbral operativo); y verificar la consistencia entre
+particiones. Las dos últimas horas se dedican a documentar las decisiones, los resultados y las
+limitaciones.
+
+\medskip
+Las decisiones clave se justifican por la restricción temporal y operativa: el orden secuencial
+(variables antes que hiperparámetros) evita rehacer trabajo; programar la búsqueda bayesiana de forma
+desatendida optimiza el ciclo de 24 horas reales; y la validación estratificada en 5 particiones
+aporta la robustez necesaria para un dataset de 50.000 observaciones frente a un simple \textit{hold-out}.
+}
+
+%% ─────────────────────────────────────────────
+\item \textbf{¿Dónde se concentra el valor diferencial de la experiencia profesional?}
+
+Una vez dominadas las herramientas técnicas (algoritmos, métricas, validación, despliegue),
+¿en qué aspectos del trabajo un profesional experimentado aporta más valor diferencial frente a un
+profesional competente pero con menor trayectoria? ¿Qué conocimiento se adquiere por experiencia
+y no por formación?
+
+\sol{
+
+El profesional experimentado no se distingue por conocer más algoritmos, sino por un conjunto de
+capacidades que solo emergen de la práctica repetida ante situaciones imprevisibles.
+
+\medskip
+La primera es el diagnóstico rápido de problemas: reconoce patrones de fallo (data leakage, fuga del
+objetivo, cambios en la distribución de los datos) antes de entrenar el primer modelo, porque los ha
+visto muchas veces, y no necesita experimentos para sospechar el diagnóstico correcto. La segunda
+es la definición del problema adecuado: sabe que una de las mayores fuentes de fracaso no es el
+modelo, sino la definición del objetivo, la elección de la ventana temporal o la confusión entre lo
+que se puede medir y lo que de verdad importa para el negocio, un juicio que no suele enseñarse en un
+curso. A ello se añade la calibración del esfuerzo, es decir, saber cuándo vale la pena seguir
+optimizando y cuándo el rendimiento adicional ya no se traduce en valor de negocio; un perfil junior
+tiende a optimizar hasta el límite técnico, mientras que un experto sabe cuándo detenerse.
+
+\medskip
+Igual de importante es la gestión de la incertidumbre y la comunicación: transmitir con precisión qué
+puede y qué no puede garantizar el modelo, y traducir esa incertidumbre a términos que los
+interesados no técnicos puedan usar para decidir. A esto se suma el conocimiento de los fallos en
+producción, pues el experto ha comprobado que un modelo puede funcionar bien en desarrollo y fallar
+en producción por causas invisibles durante este (skew entrenamiento-servicio, dependencias de datos,
+degradación temporal), y ha interiorizado cómo prevenirlas. También cuenta la intuición sobre los
+datos, la capacidad de detectar anomalías o inconsistencias que no se aprecian en las estadísticas
+resumen, resultado acumulado de haber trabajado con muchos conjuntos de datos. Por último, la gestión
+de los interesados: saber cuándo decir que no, cómo negociar plazos realistas y cómo convertir un
+proyecto técnico en un proyecto de negocio con impacto demostrable.
+}
+
+%% ─────────────────────────────────────────────
+\item \textbf{Discrepancia entre entorno de desarrollo y producción.}
+
+Enumere las causas más frecuentes por las que un modelo con buenas métricas en desarrollo falla
+al desplegarse. Para cada causa, explique qué la hace difícil de detectar y cómo prevenirla desde
+el diseño.
+
+\sol{
+
+\begin{enumerate}[1.]
+  \item El training-serving skew se produce cuando el modelo se entrena con datos procesados de una
+  manera y recibe en producción datos procesados de forma ligeramente distinta (otro orden de
+  operaciones, otras versiones de librerías, otro tratamiento de los nulos). Es difícil de detectar
+  porque las diferencias son sutiles y el modelo no falla con un error explícito, sino que
+  simplemente se degrada. Se previene usando el mismo pipeline de transformación, con idéntico código
+  y artefacto serializado, en entrenamiento e inferencia.
+
+  \item El data leakage en desarrollo aparece cuando el modelo usa variables que en desarrollo
+  parecen inocuas pero que en producción no están disponibles en el momento de la predicción
+  (información futura o variables calculadas tras el evento). Resulta difícil de detectar porque las
+  métricas son excelentes y la fuga es conceptual, no técnica. Se previene documentando el instante de
+  disponibilidad de cada variable y auditando la posible fuga antes de entrenar.
+
+  \item El data drift consiste en que la distribución de los datos en producción difiere de
+  la del entrenamiento, ya sea por estacionalidad, por cambios en el comportamiento de los usuarios o
+  por cambios en los sistemas de captura. Es difícil de detectar durante el desarrollo porque el
+  conjunto de test es estático. Se previene monitorizando en producción la distribución de las
+  variables de entrada (PSI, divergencia KL o el test de Kolmogorov-Smirnov) y estableciendo alertas.
+
+  \item Las dependencias frágiles de datos surgen cuando el modelo depende de una fuente que en
+  producción llega con retraso, con errores ocasionales o con un esquema cambiante. Es difícil de
+  detectar porque en desarrollo los datos suelen estar completos y limpios. Se previene diseñando el
+  pipeline con un manejo explícito de los datos faltantes, validación del esquema de entrada y cortes
+  automáticos ante datos anómalos.
+
+  \item La inconsistencia de versiones se debe a diferencias en las versiones de las librerías
+  (scikit-learn, XGBoost) entre desarrollo y producción, que pueden producir predicciones
+  numéricamente distintas. Es difícil de detectar porque el modelo no falla, sino que ofrece
+  resultados levemente diferentes que degradan el rendimiento de forma imperceptible. Se previene
+  fijando las versiones en un fichero de requisitos y trabajando en un entorno reproducible.
+
+  \item La latencia y las restricciones de cómputo aparecen cuando el modelo requiere más tiempo de
+  inferencia del aceptable en producción, lo que obliga a simplificarlo tras el despliegue de forma no
+  controlada. Se previene definiendo los límites de latencia antes de entrenar y midiendo el tiempo de
+  inferencia como parte del proceso de evaluación.
+\end{enumerate}
+}
+
+%% ─────────────────────────────────────────────
+\item \textbf{Discrepancia entre métrica y utilidad operativa.}
+
+Un modelo de clasificación obtiene un AUC de 0{,}95 en el conjunto de test, pero los usuarios del
+sistema reportan que las predicciones no son útiles en la práctica. Explique cómo es posible esta
+discrepancia. ¿Qué diagnóstico realizaría?
+
+\sol{
+
+El AUC-ROC mide la capacidad discriminativa del modelo en media sobre todos los umbrales posibles. Un
+AUC de 0{,}95 garantiza que el modelo ordena bien los ejemplos positivos y negativos, pero no dice
+nada sobre su utilidad en el umbral operativo concreto ni sobre si las predicciones responden a la
+pregunta que los usuarios realmente necesitan resolver. Esa brecha entre una métrica agregada y la
+decisión concreta explica la discrepancia, y admite varias causas.
+
+\medskip
+Puede ocurrir que el objetivo sea incorrecto, de modo que el modelo prediga un sustituto del evento
+de interés y no el evento en sí: las métricas son excelentes, pero las predicciones no se
+corresponden con las decisiones que deben tomarse. También es habitual una calibración deficiente,
+en la que el modelo discrimina bien pero las probabilidades predichas están mal ajustadas; un modelo
+que predice casi siempre 0{,}99 o 0{,}01 puede tener un AUC alto y resultar inútil para cualquier
+decisión basada en umbrales de probabilidad. En problemas muy desbalanceados (muchos datos de una clase y pocos de la otra), el AUC puede
+ser engañoso, pues, por ejemplo, para un problema con la mayor parte de las observaciones reales negativas, un modelo que clasifica todo como negativo alcanza un valor alto por la forma en
+que se construye la curva ROC; en ese caso el AUC-PR (área bajo la curva precisión-recall) suele ser
+más informativo. Otra posibilidad es que el umbral operativo caiga en una zona de bajo rendimiento:
+el AUC es alto en promedio, pero en el rango de probabilidades donde se toman las decisiones (por
+ejemplo, entre 0{,}4 y 0{,}6) el modelo discrimina mal. A ello se añaden una distribución del
+conjunto de test no representativa, construida con un sesgo de selección que no refleja la realidad de
+producción, y la desalineación entre la métrica y el objetivo de negocio, ya que el AUC optimiza el
+ordenamiento, pero el negocio puede necesitar precisión alta en el tramo superior de las
+predicciones, maximizar el recall o minimizar los falsos positivos en un contexto de coste asimétrico.
+
+\medskip
+El diagnóstico pasa por analizar la curva de calibración, el AUC-PR y la matriz de confusión en el
+umbral operativo real, validar la distribución del conjunto de test frente a la de producción y,
+sobre todo, entrevistar a los usuarios para entender qué tipo de predicción esperan y cómo la
+utilizan.
+}
+
+%% ─────────────────────────────────────────────
+\item \textbf{Detección de regímenes de mercado.}
+
+Supón que deseas identificar automáticamente distintos regímenes de mercado (alcista, bajista, alta
+volatilidad, crisis, recuperación, etc.) utilizando información histórica de rentabilidades,
+volatilidades y factores macroeconómicos. Diseña una metodología basada en reducción dimensional y
+clustering para abordar este problema. Justifica qué algoritmos elegirías y cómo validarías que los
+regímenes identificados tienen significado económico. Explica también las limitaciones que podrían
+surgir si los datos contienen ruido, observaciones atípicas o estructuras no esféricas.
+
+\sol{
+
+El estado del mercado en cada periodo se caracteriza mediante una ventana temporal rodante que reúne
+las rentabilidades realizadas a distintos horizontes (1, 5 y 21 días), la volatilidad realizada, la
+correlación entre activos, los spreads de crédito, los tipos de interés, indicadores
+como el VIX y factores macroeconómicos. Cada observación es así un vector que representa el estado del
+mercado en ese instante.
+
+\medskip
+Con entre 20 y 50 variables, se aplica PCA para extraer entre tres y cinco componentes principales que
+resuman ese estado; conviene tratar antes los valores atípicos, ya que el PCA es sensible a ellos, y
+para la exploración visual puede recurrirse a UMAP en dos dimensiones.
+
+\medskip
+Sobre esa representación reducida, el clustering se aborda con varios algoritmos. K-Means
+(con $k$ entre 4 y 6) es rápido y reproducible y permite interpretar los centroides como perfiles típicos de
+cada régimen, por lo que constituye una primera opción razonable por su sencillez. Los Hidden Markov
+Models resultan especialmente adecuados para series temporales con dependencia secuencial, ya que los
+regímenes presentan persistencia y transiciones con probabilidades estimadas, lo que los hace más
+apropiados que un K-Means puro para datos financieros con inercia. Los Gaussian Mixture Models
+generalizan K-Means a clústeres elípticos y permiten una asignación probabilística (cada periodo
+pertenece a varios regímenes con cierta probabilidad), útil en las transiciones entre regímenes.
+
+\medskip
+La validación del significado económico se apoya en tres comprobaciones: que la distribución de
+rentabilidades del índice de referencia difiera de forma apreciable entre regímenes; que los
+regímenes identificados coincidan con periodos económicos reconocidos (2008, 2020 y 2022); y que
+las estrategias de asignación de activos condicionadas al régimen mejoren el Sharpe respecto a una
+estrategia estática.
+
+\medskip
+Las limitaciones más relevantes proceden de la naturaleza de los datos. El ruido de alta frecuencia
+es elevado, y aunque la reducción dimensional ayuda, no lo elimina, de modo que las ventanas
+temporales deben ser lo bastante largas para suavizarlo sin perder la información de los cambios de
+régimen. Los outliers son inevitables, pues las crisis son por definición observaciones atípicas que
+pueden dominar el PCA, lo que aconseja tratarlos previamente. Las estructuras no esféricas también
+suponen un problema: los regímenes no son necesariamente convexos ni esféricos, y mientras K-Means
+asume esfericidad, los Gaussian Mixture Models admiten elipses y DBSCAN puede captar formas
+arbitrarias a costa de una menor estabilidad. Por último, hay que evitar la fuga de información del
+futuro: si los regímenes se definen con el histórico completo y luego se usan como variables
+predictivas, se introduce un sesgo, por lo que cualquier estrategia basada en regímenes debe
+definirlos usando solo los datos disponibles hasta el momento de la predicción.
+}
+
+%% ─────────────────────────────────────────────
+\item \textbf{Selección de un único algoritmo para datos tabulares: argumentación completa.}
+
+Si solo pudiera utilizar un algoritmo de ML para datos tabulares durante toda su carrera
+profesional, ¿cuál elegiría? Argumente considerando: versatilidad, robustez ante datos imperfectos,
+velocidad de iteración, competitividad como baseline y facilidad de despliegue.
+
+\sol{
+
+La elección sería LightGBM, un algoritmo de árboles potenciados por gradiente, y los cinco criterios
+propuestos lo respaldan.
+
+\medskip
+En cuanto a la versatilidad, LightGBM resuelve clasificación binaria, multiclase y regresión con el
+mismo algoritmo y cambios mínimos de configuración, y trabaja con variables numéricas, categóricas
+(con codificación nativa) y datos con valores faltantes sin un preprocesamiento especial, sin
+necesidad siquiera de normalizar. Respecto a la robustez ante datos imperfectos, los árboles de
+decisión son por naturaleza poco sensibles a los outliers, a las variables irrelevantes y a las
+distribuciones no normales, y la regularización integrada ($L_1$, $L_2$) ayuda a controlar el
+sobreajuste incluso con muestras pequeñas. En velocidad de iteración, LightGBM tiende a ser más
+rápido que XGBoost estándar gracias al crecimiento de árboles por hojas (leaf-wise) y a otras
+optimizaciones de eficiencia, lo que acorta los ciclos de experimentación, algo especialmente valioso
+cuando hay restricciones de tiempo.
+
+\medskip
+Sobre su competitividad como referencia, LightGBM con hiperparámetros por defecto suele rendir muy
+bien en datos tabulares estructurados y destaca con frecuencia tanto en competiciones como en
+comparativas frente a las redes neuronales tabulares. Y en cuanto a la facilidad de despliegue, el
+modelo serializado es un artefacto ligero, con una inferencia rápida y de latencia predecible que no
+depende de GPU.
+
+\medskip
+La razón para preferirlo como única apuesta de por vida no es que sea siempre el mejor, sino que rara
+vez es una mala elección: cuando no gana, suele quedar cerca, y su ecosistema de herramientas (SHAP
+nativo, early stopping, validación cruzada integrada) lo hace cómodo de usar en casi cualquier
+problema tabular.
+}
+
+%% ─────────────────────────────────────────────
+\item \textbf{Contextos donde el deep learning no es la solución apropiada.}
+
+Describe al menos cuatro situaciones concretas donde una red neuronal es una elección inadecuada
+frente a alternativas más simples. Justifique las razones de fondo en cada caso.
+
+\sol{
+
+\begin{enumerate}[1.]
+  \item Datos tabulares estructurados con pocas observaciones ($n < 10.000$). Las redes neuronales
+  suelen necesitar grandes volúmenes de datos para superar el sobreajuste, de modo que con muestras
+  pequeñas los árboles de decisión regularizados (XGBoost, LightGBM) o los modelos lineales
+  regularizados tienden a rendir mejor. La razón de fondo es que una red neuronal puede tener un
+  número de parámetros muy elevado, difícil de estimar de forma fiable con pocos datos.
+
+  \item Entornos con requisitos estrictos de interpretabilidad regulatoria. En la concesión de
+  crédito, el diagnóstico médico asistido o las decisiones judiciales, la regulación exige explicar
+  cada predicción individual. Los modelos lineales y los árboles de decisión producen explicaciones
+  exactas y verificables, mientras que las redes neuronales solo ofrecen aproximaciones posteriores
+  (SHAP, LIME), difíciles de auditar con el mismo rigor.
+
+  \item Tiempo de cómputo o recursos limitados. Entrenar una red neuronal competitiva suele requerir
+  GPU, muchas iteraciones de entrenamiento y una búsqueda intensiva de hiperparámetros (arquitectura,
+  tasa de aprendizaje, dropout, normalización por lotes). Para un ciclo de iteración rápido o un
+  despliegue en hardware modesto, un modelo de gradient boosting entrenado en minutos es preferible.
+
+  \item Señal débil en datos tabulares de alta dimensión y mucho ruido. Las redes neuronales pueden
+  amplificar el ruido cuando la relación señal-ruido es baja, porque aprenden con facilidad patrones
+  espurios. Los modelos con regularización explícita (Lasso, Ridge, o árboles con la profundidad y el
+  tamaño de hoja limitados) son más conservadores y suelen generalizar mejor en estos contextos.
+
+  \item Problemas con variables muy interpretables y efectos aditivos conocidos. Si el conocimiento de
+  dominio indica que la relación entre las variables y el objetivo es aproximadamente lineal o
+  log-lineal, una regresión logística o una regresión lineal regularizada es más eficiente, más
+  interpretable y menos propensa al sobreajuste que una red neuronal que dedicaría capacidad a modelar
+  no linealidades inexistentes.
+\end{enumerate}
+}
+
+%% ─────────────────────────────────────────────
+\item \textbf{Criterios para reentrenar un modelo desplegado.}
+
+Un modelo fue desplegado hace seis meses. ¿Qué indicadores monitoriza para determinar si necesita
+reentrenamiento? ¿Cómo distingue un deterioro real de una fluctuación normal?
+
+\sol{
+
+Para monitorizarlo, podemos utilizar varios indicadores complementarios. El más directo es la métrica de
+rendimiento en producción: si se dispone de labels con una latencia aceptable (por ejemplo,
+cuando el evento ocurre en los 30 días siguientes), conviene seguir la métrica principal (AUC, F1,
+error cuadrático) en ventanas rodantes, de modo que un deterioro sostenido por encima de un umbral
+predefinido sea señal de reentrenamiento. A ello se añade la vigilancia del data drift, comparando la
+distribución de las variables de entrada en producción con la del entrenamiento mediante el PSI
+(índice de estabilidad poblacional, que mide cuánto se ha desplazado una variable) o el test de
+Kolmogorov-Smirnov; un PSI elevado en variables críticas suele tomarse como indicio de un drift
+relevante. También conviene vigilar el concept drift, es decir, un cambio acusado en la distribución
+de las predicciones sin que cambien las entradas, que puede revelar una alteración en la relación
+entre variables y objetivo, así como la tasa de positivos observados, ya que una divergencia marcada
+frente a la tasa predicha apunta a una pérdida de calibración. En última instancia, el deterioro
+relevante es el que se refleja en las métricas de negocio (conversión, pérdidas, retención).
+
+\medskip
+Distinguir un deterioro real de una fluctuación normal exige cierta disciplina estadística. Resulta
+útil emplear bandas de control (media $\pm 2\sigma$ o $\pm 3\sigma$ sobre la historia reciente de la
+métrica) y activar la alerta solo cuando la métrica cae fuera de la banda de manera persistente, no
+puntual. Conviene además exigir que el deterioro se mantenga durante un mínimo de periodos
+consecutivos (por ejemplo, tres semanas) antes de reentrenar, para no reaccionar a fluctuaciones
+aleatorias, y comparar el periodo deteriorado con periodos históricos de estacionalidad similar, dado
+que un descenso que coincide con un patrón estacional conocido no requiere reentrenamiento sino un
+ajuste del umbral operativo. Por último, si el cambio en la distribución de las entradas es abrupto y
+no gradual, la causa puede ser un error de datos en una fase anterior del pipeline, y no un deterioro
+del modelo, por lo que conviene investigar la fuente antes de reentrenar.
+}
+
+%% ─────────────────────────────────────────────
+\item \textbf{El tradeoff sesgo-varianza en las decisiones cotidianas.}
+
+El tradeoff sesgo-varianza es el concepto teórico más citado del ML. Sin embargo, rara vez se
+invoca explícitamente en la práctica diaria. Explique cómo este tradeoff se manifiesta de forma
+implícita en las decisiones cotidianas que un profesional de ML toma sin nombrar el concepto.
+Proporcione al menos tres ejemplos concretos.
+
+\sol{
+
+El tradeoff sesgo-varianza establece que el error esperado de un modelo se descompone en sesgo
+(la incapacidad estructural del modelo para capturar la relación real), varianza (su sensibilidad a
+las fluctuaciones del conjunto de entrenamiento) y un término irreducible. Sus implicaciones están presentes en numerosas
+decisiones.
+
+\begin{enumerate}[1.]
+  \item Al elegir el número de árboles y la profundidad en XGBoost. Cuando se sube la profundidad
+  máxima de 4 a 8 se reduce el sesgo, porque el modelo puede capturar relaciones más complejas, a
+  costa de aumentar la varianza, ya que se vuelve más sensible a los datos de entrenamiento. Y al usar
+  early stopping para detener el entrenamiento antes de que la métrica de validación empeore, se está
+  controlando la varianza.
+
+  \item Al decidir si se aplica regularización Lasso. Al preferir Lasso a la
+  regresión ordinaria en un modelo con 50 variables y 1.000 observaciones, se está introduciendo sesgo
+  (al asumir que muchos coeficientes son cero) para reducir la varianza.
+
+  \item Al elegir entre una regresión lineal y un GBM para un dataset pequeño. Cuando, con 500
+  observaciones, se decide empezar por un modelo simple y solo aumentar la complejidad si
+  hace falta, se está priorizando una varianza baja sobre un sesgo bajo. El modelo lineal tendrá sesgo
+  alto si la relación es no lineal, pero con tan pocos datos la varianza de un GBM probablemente
+  dominaría el error total.
+
+  \item Al fijar el tamaño de la ventana de entrenamiento en series temporales. Una ventana corta
+  produce estimaciones más adaptadas al régimen actual (bajo sesgo temporal) pero más ruidosas (alta
+  varianza), mientras que una ventana larga es más estable pero puede incorporar regímenes obsoletos.
+  Esta decisión es en sí gestión del tradeoff sesgo-varianza en el tiempo.
+\end{enumerate}
+}
+
+%% ─────────────────────────────────────────────
+\item \textbf{Feature engineering: ¿cuándo es necesario y cuándo no?}
+
+Discuta en qué contextos la construcción manual de variables sigue siendo determinante para el
+rendimiento del modelo y en qué contextos no aporta valor significativo. Justifique la diferencia.
+
+\sol{
+
+La construcción manual de variables es determinante, ante todo, cuando el conocimiento del dominio no
+está presente en los datos en bruto. En finanzas, por ejemplo, un ratio como la deuda neta en
+relación con los beneficios resume en una sola cifra la solidez de una empresa, algo que un modelo
+alimentado solo con cifras contables sueltas necesitaría una enorme cantidad de datos para deducir por
+sí mismo. Ocurre algo parecido en las series temporales con estacionalidad: extraer de forma explícita
+el día de la semana, los festivos o indicadores de los ciclos que se repiten ayuda a que los modelos
+sin memoria del orden temporal (los árboles o los modelos lineales) reconozcan esos patrones. Y cuando
+hay mucho ruido y poca señal, agregar la información (por ejemplo, con medias móviles o variaciones
+porcentuales) suaviza el ruido y resalta lo relevante, sobre todo cuando hay pocos datos. Un último
+caso son las variables categóricas con muchísimos valores distintos: en lugar de crear una columna por
+valor (lo que se conoce como one-hot), suele funcionar mejor resumir cada categoría con un número, como
+su frecuencia de aparición o su relación media con el objetivo.
+
+\medskip
+En cambio, construir variables a mano aporta poco cuando el propio modelo ya es capaz de extraer esa
+información. Con imágenes, texto o audio, las redes neuronales profundas (como las redes
+convolucionales) aprenden por sí solas qué conviene representar, y una transformación hecha a mano
+(por ejemplo, un histograma de colores de una imagen) se queda corta frente a lo que aprende la red.
+Tampoco compensa demasiado con conjuntos de datos grandes y de buena calidad, porque ahí los modelos
+de boosting ya captan solos las interacciones y las relaciones no lineales. Y si el tiempo de
+desarrollo es escaso, mantener y validar variables complicadas en producción puede costar más de lo
+que aportan.
+}
+
+%% ─────────────────────────────────────────────
+\item \textbf{Construcción de un modelo de ensamblaje para predicción de retornos financieros.}
+
+Suponga que se trabaja en el equipo cuantitativo de un Hedge Fund y se dispone de una batería de
+modelos desarrollados por distintos investigadores para predecir la rentabilidad futura de las
+acciones. Algunos modelos están basados en variables fundamentales, otros en factores técnicos, otros
+en datos macroeconómicos y otros en variables alternativas. Explique cómo diseñaría una estrategia
+de ensamblaje que combine las predicciones individuales en un único modelo global. Discuta qué tipos
+de modelos utilizar como modelos base, cómo evaluar el rendimiento individual de cada uno y qué
+técnicas de ensamblaje emplear para combinar sus predicciones. Analice, además, cómo determinar si
+el ensamblaje aporta valor añadido respecto a los modelos individuales y qué riesgos de sobreajuste
+podrían surgir durante el proceso. El objetivo no es encontrar el mejor modelo, sino construir un
+sistema donde los errores de unos modelos sean compensados por las fortalezas de otros.
+
+\sol{
+
+El valor del ensamblaje proviene de la diversidad, no de la calidad individual: dos modelos mediocres
+pero con errores poco correlacionados pueden generar, al combinarse, un predictor mejor que un único
+modelo más preciso. El objetivo, por tanto, es maximizar la diversidad de las fuentes de error. Como
+modelos base conviene partir de familias complementarias, en la línea del resto del pipeline: modelos
+lineales regularizados (Ridge o Lasso), modelos de boosting (XGBoost o LightGBM) y algún modelo de
+factores alineado con la lógica financiera, de manera que cada uno capte una parte distinta de la
+señal.
+
+\medskip
+La evaluación individual de los modelos base debe ir más allá de su acierto medio. Para cada modelo
+conviene medir, en validación walk-forward, la correlación de Spearman entre sus predicciones y la
+rentabilidad realizada, así como la consistencia de esa correlación a lo largo del tiempo (su media
+frente a su desviación), pues una señal muy volátil delata un modelo dependiente del régimen. La
+métrica clave para la diversidad, sin embargo, es la correlación de los errores entre modelos:
+aquellos pares con baja correlación de errores son los candidatos ideales para combinarse. Conviene
+además vigilar si la capacidad predictiva de cada modelo se deteriora con el tiempo, lo que obligaría
+a reentrenarlo con más frecuencia.
+
+\medskip
+Para combinar las predicciones, una opción sencilla y robusta es el promedio simple, que resiste bien
+el sobreajuste y, aunque existen métodos de combinación más elaborados, suele ser difícil de batir
+fuera de muestra cuando no hay evidencia sólida de que un modelo sea sistemáticamente superior. Otra
+opción, la misma que se emplea en el pipeline, es el promedio ponderado, que asigna más peso a los
+modelos con mejor rendimiento reciente y permite así adaptarse a los cambios de régimen; conviene
+mantener esos pesos estables y rebajar el de los modelos muy redundantes, para no concentrar la
+combinación en una única fuente de señal.
+
+\medskip
+El ensamblaje aporta valor añadido si, fuera de muestra, su correlación con el retorno y su
+consistencia superan a las del mejor modelo individual, y si esa mejora se traslada a la estrategia:
+mayor Sharpe y menor drawdown en una cartera long/short que con cualquier modelo por separado.
+
+\medskip
+Los riesgos de sobreajuste en este proceso son específicos. Si los pesos se ajustan mirando todo el
+histórico, se acaban capitalizando correlaciones pasajeras, por lo que conviene fijarlos con
+validación walk-forward y mantener la combinación sencilla. Incorporar muchos modelos muy
+correlacionados aporta poca diversidad real: un conjunto numeroso de modelos que comparten la mayoría
+de las variables tiende a aportar menos que unos pocos con fuentes de información distintas. Y, sobre
+todo, los pesos deben estimarse sin usar datos posteriores a la fecha de predicción, para no
+introducir una fuga de información.
+}
+
+%% ─────────────────────────────────────────────
+\item \textbf{Tratamiento de la clasificación con clases desbalanceadas.}
+
+En un problema con un 98\% de negativos y un 2\% de positivos, un compañero aplica SMOTE y reporta
+que ``el accuracy ha mejorado''. Analice críticamente esta afirmación y describa un enfoque más
+adecuado.
+
+\sol{
+
+La afirmación es muy probablemente irrelevante. En un dataset con un 98\,\% de negativos, un modelo
+trivial que clasifica todo como negativo ya alcanza un accuracy del 98\,\%, de modo que cualquier
+mejora de accuracy reportada tras aplicar SMOTE debe compararse con esa referencia. Lo más probable es
+que SMOTE haya aumentado el recall de la clase positiva (lo cual sería deseable) a costa de
+incrementar los falsos positivos, con un efecto neto ambiguo que el accuracy no captura.
+
+\medskip
+SMOTE plantea además problemas específicos en este contexto. Genera ejemplos sintéticos interpolando
+entre positivos reales en el espacio de variables, de manera que si los positivos son heterogéneos o
+forman grupos dispersos, esos ejemplos pueden introducir ruido en regiones de alta densidad negativa.
+Si se aplica antes de la validación cruzada, en lugar de dentro de cada partición, produce data
+leakage, porque ejemplos sintéticos basados en el conjunto de validación contaminan el entrenamiento
+e inflan artificialmente las métricas. Y, en cualquier caso, el accuracy es una métrica inadecuada
+para clases desbalanceadas, pues no penaliza los errores en la clase minoritaria, que es precisamente
+la que importa.
+
+\medskip
+Un enfoque más adecuado seguiría estos pasos:
+
+\begin{enumerate}[1.]
+  \item Elegir la métrica correcta: AUC-PR (área bajo la curva precisión-recall), F1 de la clase
+  positiva o una función de pérdida ponderada alineada con el coste asimétrico del error (falso
+  negativo frente a falso positivo).
+  \item Ponderar la pérdida por clase, ya que muchos algoritmos permiten dar más peso a los errores
+  sobre la clase minoritaria sin necesidad de generar datos sintéticos.
+  \item Ajustar el umbral de clasificación, desplazándolo por debajo del 0{,}5 por defecto para
+  aumentar el recall según el coste de negocio.
+  \item Recurrir a estrategias de muestreo con cuidado: si se utiliza SMOTE, aplicarlo dentro de cada
+  partición de la validación cruzada y nunca sobre el dataset completo antes de dividir.
+  \item Valorar el submuestreo de la clase mayoritaria, que en datasets muy grandes puede ser más
+  eficiente y menos ruidoso que la generación sintética de positivos.
+\end{enumerate}
+}
+
+%% ─────────────────────────────────────────────
+\item \textbf{Cuantificación de la incertidumbre: ¿cuándo es prescindible y cuándo es crítica?}
+
+Un modelo probabilístico (que produce intervalos de confianza) es más complejo de construir y
+mantener que uno que produce solo predicciones puntuales. Describe dos contextos donde la
+incertidumbre es prescindible y dos donde su ausencia supone un riesgo grave. Explica la diferencia
+de fondo.
+
+\sol{
+
+La incertidumbre es prescindible, en primer lugar, en la recomendación de contenido a escala. Un
+sistema que ordena 1.000 películas para cada usuario no necesita intervalos de confianza: la decisión
+de mostrar los diez primeros resultados es de bajo coste, reversible al recargar la página, y el
+propio usuario evalúa el resultado de inmediato, de modo que el volumen y la reversibilidad eliminan
+la necesidad de cuantificar la incertidumbre. Algo parecido ocurre en la clasificación de spam en
+sistemas de alto volumen, ya que el objetivo del sistema es facilitar al usuario la tarea de revisar su bandeja de entrada, éste, no desea obtener para cada correo las probabilidades de ser spam y revisarlos uno a uno, es decir, una predicción puntual con un umbral bien calibrado basta, y la complejidad añadida de un modelo probabilístico no se traduce
+en valor.
+
+\medskip
+Su ausencia, en cambio, supone un riesgo grave cuando la decisión es irreversible o el coste del error
+es asimétrico. En la gestión de riesgo financiero, estimar la magnitud de una posible pérdida sin
+acompañarla de una banda de incertidumbre puede inducir a asumir una exposición excesiva que ignore la
+cola de la distribución de pérdidas; aquí un modelo probabilístico, que aporta esa incertidumbre
+calibrada, es muy preferible a una predicción puntual. Lo mismo sucede en el diagnóstico médico
+asistido: un modelo que estima la probabilidad de una enfermedad grave sin comunicar su incertidumbre
+puede llevar a un médico a una decisión clínica que él mismo rechazaría si supiera que la predicción
+tiene una varianza enorme, pues la ausencia de incertidumbre crea una falsa sensación de precisión; en
+decisiones irreversibles y de alto impacto (cirugía, quimioterapia), la incertidumbre forma parte de
+la información clínicamente relevante.
+
+\medskip
+Es decir, la incertidumbre resulta prescindible cuando la decisión es reversible, el coste del
+error es bajo, y el volumen de decisiones permite que los errores se promedien; y se
+vuelve crítica cuando la decisión es irreversible, el coste del error es muy alto, y
+quien decide necesita saber cuánta confianza depositar en la predicción para actuar de forma
+responsable.
+}
+
+\end{enumerate}
+
+\noindent \textit{Nota:} Se ha utilizado Claude Opus 4.7. como asistente para la resolución de los ejercicios y la escritura en \LaTeX.
+
+\end{document}
